@@ -1,0 +1,9 @@
+*.ini
+main
+like-service
+*.DS_Store
+vendor/*
+*.exe
+DONT_COMMIT*
+run.bat
+kube-deploy

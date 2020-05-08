@@ -1,0 +1,14 @@
+*.swp
+skaffold.yaml
+*.ini
+gapura
+main
+*.DS_Store
+vendor/*
+*.exe
+DONT_COMMIT*
+run.bat
+cuman-test/
+posted
+like-service
+kube-deploy
