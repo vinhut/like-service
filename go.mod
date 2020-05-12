@@ -1,4 +1,4 @@
-module gitlab.com/vin_hut/like-service
+module github.com/vinhut/like-service
 
 go 1.13
 
