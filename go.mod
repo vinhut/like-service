@@ -3,6 +3,8 @@ module github.com/vinhut/like-service
 go 1.13
 
 require (
-	github.com/gin-gonic/gin v1.6.2
+	github.com/gin-gonic/gin v1.5.0
+	github.com/golang/mock v1.4.3
+	github.com/stretchr/testify v1.4.0
 	go.mongodb.org/mongo-driver v1.3.1
 )
