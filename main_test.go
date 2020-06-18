@@ -53,3 +53,30 @@ func TestCheckUser(t *testing.T) {
 
 	assert.Equal(t, test_data, data)
 }
+
+func TestGetPostCount(t *testing.T) {
+
+	now := time.Now()
+	token := "852a37a34b727c0e0b331806-7af4bdfdcc60990d427f383efecc8529289d040dd67e0753b9e2ee5a1e938402186f28324df23f6faa4e2bbf43f584ae228c55b00143866215d6e92805d470a1cc2a096dcca4d43527598122313be412e17fbefdcdab2fae02e06a405791d936862d4fba688b3c7fd784d4"
+	user_data := "{\"uid\": \"1\", \"email\": \"test@email.com\", \"role\": \"standard\", \"created\": \"" + now.Format("2006-01-02T15:04:05") + "\"}"
+	postid := "1"
+
+	os.Setenv("KEY", "12345678901234567890123456789012")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock_like := mocks_models.NewMockLikeDatabase(ctrl)
+	mock_auth := mocks_services.NewMockAuthService(ctrl)
+
+	mock_auth.EXPECT().Check(gomock.Any(), gomock.Any()).Return(user_data, nil)
+	mock_like.EXPECT().FindPost(gomock.Any()).Return(1, nil)
+
+	router := setupRouter(mock_like, mock_auth)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", SERVICE_NAME+"/postcount?postid="+postid, nil)
+	req.Header.Set("Cookie", "token="+token+";")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+}
