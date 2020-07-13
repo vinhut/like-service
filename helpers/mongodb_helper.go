@@ -39,7 +39,8 @@ func toDoc(v interface{}) (doc *bson.D, err error) {
 
 func NewMongoDatabase() DatabaseHelper {
 
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URL")))
 	log.Print(os.Getenv("MONGO_URL"))
 	if err != nil {
@@ -57,7 +58,8 @@ func NewMongoDatabase() DatabaseHelper {
 func (mdb *MongoDBHelper) Query(collectionName string, query map[string]string, data interface{}) error {
 
 	collection := mdb.db.Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	result := collection.FindOne(ctx, query)
 	err := result.Decode(data)
@@ -71,7 +73,9 @@ func (mdb *MongoDBHelper) Query(collectionName string, query map[string]string, 
 func (mdb *MongoDBHelper) QueryAll(collectionName string, key string, value string, obj interface{}) ([]interface{}, error) {
 
 	collection := mdb.db.Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	cur, err := collection.Find(ctx, bson.M{key: value})
 	if err != nil {
 		fmt.Println("finding fail ", err)
@@ -103,7 +107,9 @@ func (mdb *MongoDBHelper) QueryAll(collectionName string, key string, value stri
 func (mdb *MongoDBHelper) FindAll(collectionName string, obj interface{}) ([]interface{}, error) {
 
 	collection := mdb.db.Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	cur, err := collection.Find(ctx, bson.D{{}})
 	if err != nil {
 		fmt.Println("finding fail ", err)
@@ -135,7 +141,9 @@ func (mdb *MongoDBHelper) FindAll(collectionName string, obj interface{}) ([]int
 
 func (mdb *MongoDBHelper) Insert(collectionName string, data interface{}) error {
 	collection := mdb.db.Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	new_user, err := bson.Marshal(data)
 	if err != nil {
 		return err
@@ -152,7 +160,9 @@ func (mdb *MongoDBHelper) Insert(collectionName string, data interface{}) error 
 
 func (mdb *MongoDBHelper) Upsert(collectionName string, query map[string]string, data interface{}) error {
 	collection := mdb.db.Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	new_data, err := toDoc(data)
 	if err != nil {
 		return err
@@ -179,7 +189,8 @@ func (mdb *MongoDBHelper) Upsert(collectionName string, query map[string]string,
 func (mdb *MongoDBHelper) Delete(collectionName string, query map[string]string) error {
 
 	collection := mdb.db.Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	_, err := collection.DeleteOne(ctx, query)
 	if err != nil {
