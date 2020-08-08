@@ -288,6 +288,30 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 		span.Finish()
 
 	})
+
+	// internal endpoint
+
+	router.POST("internal/post", func(c *gin.Context) {
+		span := tracer.StartSpan("internal generate like post")
+
+		uid, _ := c.GetQuery("uid")
+		post_id, _ := c.GetQuery("postid")
+
+		new_post_like := models.PostLike{
+			Likeid:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			Uid:     uid,
+			Postid:  post_id,
+			Created: time.Now(),
+		}
+
+		_, create_err := likedb.CreatePostLike(new_post_like)
+		if create_err != nil {
+			panic(create_err)
+		}
+		c.String(200, "Liked")
+		span.Finish()
+	})
+
 	return router
 }
 
