@@ -9,8 +9,8 @@ deploy:
   helm:
     releases:
     - name: like-service
-      chartPath: ../kube-deploy/charts/like-service
+      chartPath: ../../kube-deploy/charts/like-service
       valuesFiles: 
-        - ../kube-deploy/charts/like-service/values.yaml
+        - ../../kube-deploy/charts/like-service/values.yaml
       values:
         imageName: docker.pkg.github.com/vinhut/like

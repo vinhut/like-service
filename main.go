@@ -2,13 +2,17 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	opentracing "github.com/opentracing/opentracing-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jaegerlog "github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-lib/metrics"
 	"github.com/vinhut/like-service/helpers"
 	"github.com/vinhut/like-service/models"
 	"github.com/vinhut/like-service/services"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"encoding/json"
-	"fmt"
+	"os"
 	"strconv"
 	"time"
 )
@@ -31,7 +35,7 @@ func checkUser(authservice services.AuthService, token string) (*UserAuthData, e
 	}
 
 	if err := json.Unmarshal([]byte(user_data), data); err != nil {
-		fmt.Println(err)
+		panic(err)
 		return data, err
 	}
 
@@ -41,6 +45,26 @@ func checkUser(authservice services.AuthService, token string) (*UserAuthData, e
 
 func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *gin.Engine {
 
+	var JAEGER_COLLECTOR_ENDPOINT = os.Getenv("JAEGER_COLLECTOR_ENDPOINT")
+	cfg := jaegercfg.Configuration{
+		ServiceName: "like-service",
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			LogSpans:          true,
+			CollectorEndpoint: JAEGER_COLLECTOR_ENDPOINT,
+		},
+	}
+	jLogger := jaegerlog.StdLogger
+	jMetricsFactory := metrics.NullFactory
+	tracer, _, _ := cfg.NewTracer(
+		jaegercfg.Logger(jLogger),
+		jaegercfg.Metrics(jMetricsFactory),
+	)
+	opentracing.SetGlobalTracer(tracer)
+
 	router := gin.Default()
 
 	router.GET(SERVICE_NAME+"/ping", func(c *gin.Context) {
@@ -48,6 +72,8 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 	})
 
 	router.GET(SERVICE_NAME+"/postcount", func(c *gin.Context) {
+
+		span := tracer.StartSpan("get postlike count")
 
 		value, err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
@@ -64,10 +90,13 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(find_err)
 		}
 		c.String(200, strconv.Itoa(like_count))
+		span.Finish()
 
 	})
 
 	router.GET(SERVICE_NAME+"/post", func(c *gin.Context) {
+
+		span := tracer.StartSpan("get post like")
 
 		value, err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
@@ -85,10 +114,13 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(query_err)
 		}
 		c.String(200, strconv.FormatBool(isliked))
+		span.Finish()
 
 	})
 
 	router.POST(SERVICE_NAME+"/post", func(c *gin.Context) {
+		span := tracer.StartSpan("like post")
+
 		value, err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
 		if err != nil {
@@ -111,9 +143,12 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(create_err)
 		}
 		c.String(200, "Liked")
+		span.Finish()
 	})
 
 	router.DELETE(SERVICE_NAME+"/post", func(c *gin.Context) {
+		span := tracer.StartSpan("unlike post")
+
 		value, err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
 		if err != nil {
@@ -129,9 +164,12 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(delete_err)
 		}
 		c.String(200, "deleted")
+		span.Finish()
 	})
 
 	router.GET(SERVICE_NAME+"/commentcount", func(c *gin.Context) {
+
+		span := tracer.StartSpan("get comment like count")
 
 		value, err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
@@ -148,10 +186,13 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(query_err)
 		}
 		c.String(200, strconv.Itoa(like_count))
+		span.Finish()
 
 	})
 
 	router.GET(SERVICE_NAME+"/comment", func(c *gin.Context) {
+
+		span := tracer.StartSpan("get comment like")
 
 		value, err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
@@ -168,10 +209,13 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(query_err)
 		}
 		c.String(200, strconv.FormatBool(isLiked))
+		span.Finish()
 
 	})
 
 	router.POST(SERVICE_NAME+"/comment", func(c *gin.Context) {
+		span := tracer.StartSpan("like comment")
+
 		value, err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
 		if err != nil {
@@ -195,9 +239,33 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(create_err)
 		}
 		c.String(200, "Liked")
+		span.Finish()
+	})
+
+	router.DELETE(SERVICE_NAME+"/comment", func(c *gin.Context) {
+		span := tracer.StartSpan("unlike comment")
+
+		value, err := c.Cookie("token")
+		comment_id, _ := c.GetQuery("commentid")
+		if err != nil {
+			panic("failed get token")
+		}
+		user_data, check_err := checkUser(authservice, value)
+		if check_err != nil {
+			panic("error check user")
+		}
+
+		_, delete_err := likedb.DeleteCommentLike(comment_id, user_data.Uid)
+		if delete_err != nil {
+			panic(delete_err)
+		}
+		c.String(200, "deleted")
+		span.Finish()
 	})
 
 	router.GET(SERVICE_NAME+"/user", func(c *gin.Context) {
+
+		span := tracer.StartSpan("get user like")
 
 		value, err := c.Cookie("token")
 		if err != nil {
@@ -217,27 +285,9 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 			panic(marshal_err)
 		}
 		c.String(200, string(result))
+		span.Finish()
 
 	})
-
-	router.DELETE(SERVICE_NAME+"/comment", func(c *gin.Context) {
-		value, err := c.Cookie("token")
-		comment_id, _ := c.GetQuery("commentid")
-		if err != nil {
-			panic("failed get token")
-		}
-		user_data, check_err := checkUser(authservice, value)
-		if check_err != nil {
-			panic("error check user")
-		}
-
-		_, delete_err := likedb.DeleteCommentLike(comment_id, user_data.Uid)
-		if delete_err != nil {
-			panic(delete_err)
-		}
-		c.String(200, "deleted")
-	})
-
 	return router
 }
 
