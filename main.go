@@ -67,7 +67,7 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 	router := gin.Default()
 
-	router.GET(SERVICE_NAME+"/ping", func(c *gin.Context) {
+	router.GET("/ping", func(c *gin.Context) {
 		c.String(200, "OK")
 	})
 
