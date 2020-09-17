@@ -88,19 +88,25 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		span := tracer.StartSpan("get postlike count")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "Unauthorized"})
+			return
 		}
 		_, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "Unauthorized"})
+			return
 		}
 
 		like_count, find_err := likedb.FindPost(post_id)
 		if find_err != nil {
-			panic(find_err)
+			span.Finish()
+			c.AbortWithStatusJSON(404, gin.H{"reason": "like not found"})
+			return
 		}
 		c.String(200, strconv.Itoa(like_count))
 		span.Finish()
@@ -111,20 +117,26 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		span := tracer.StartSpan("get post like")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "Unauthorized"})
+			return
 		}
 
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "Unauthorized"})
+			return
 		}
 
 		isliked, query_err := likedb.PostIsLiked(post_id, user_data.Uid)
 		if query_err != nil {
-			panic(query_err)
+			span.Finish()
+			c.AbortWithStatusJSON(404, gin.H{"reason": "like not found"})
+			return
 		}
 		c.String(200, strconv.FormatBool(isliked))
 		span.Finish()
@@ -134,14 +146,18 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 	router.POST(SERVICE_NAME+"/post", func(c *gin.Context) {
 		span := tracer.StartSpan("like post")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		new_post_like := models.PostLike{
@@ -153,7 +169,9 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		_, create_err := likedb.CreatePostLike(new_post_like)
 		if create_err != nil {
-			panic(create_err)
+			span.Finish()
+			c.AbortWithStatusJSON(500, gin.H{"reason": "create like error"})
+			return
 		}
 		c.String(200, "Liked")
 		span.Finish()
@@ -162,19 +180,25 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 	router.DELETE(SERVICE_NAME+"/post", func(c *gin.Context) {
 		span := tracer.StartSpan("unlike post")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		post_id, _ := c.GetQuery("postid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		_, delete_err := likedb.DeletePostLike(post_id, user_data.Uid)
 		if delete_err != nil {
-			panic(delete_err)
+			span.Finish()
+			c.AbortWithStatusJSON(500, gin.H{"reason": "delete like error"})
+			return
 		}
 		c.String(200, "deleted")
 		span.Finish()
@@ -184,19 +208,25 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		span := tracer.StartSpan("get comment like count")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		_, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		like_count, query_err := likedb.FindComment(comment_id)
 		if query_err != nil {
-			panic(query_err)
+			span.Finish()
+			c.AbortWithStatusJSON(404, gin.H{"reason": "comment like not found"})
+			return
 		}
 		c.String(200, strconv.Itoa(like_count))
 		span.Finish()
@@ -207,19 +237,25 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		span := tracer.StartSpan("get comment like")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		isLiked, query_err := likedb.CommentIsLiked(comment_id, user_data.Uid)
 		if query_err != nil {
-			panic(query_err)
+			span.Finish()
+			c.AbortWithStatusJSON(404, gin.H{"reason": "comment like not found"})
+			return
 		}
 		c.String(200, strconv.FormatBool(isLiked))
 		span.Finish()
@@ -229,14 +265,18 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 	router.POST(SERVICE_NAME+"/comment", func(c *gin.Context) {
 		span := tracer.StartSpan("like comment")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		new_comment_like := models.CommentLike{
@@ -249,7 +289,9 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		_, create_err := likedb.CreateCommentLike(new_comment_like)
 		if create_err != nil {
-			panic(create_err)
+			span.Finish()
+			c.AbortWithStatusJSON(500, gin.H{"reason": "create like error"})
+			return
 		}
 		c.String(200, "Liked")
 		span.Finish()
@@ -258,19 +300,25 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 	router.DELETE(SERVICE_NAME+"/comment", func(c *gin.Context) {
 		span := tracer.StartSpan("unlike comment")
 
-		value, err := c.Cookie("token")
+		value, cookie_err := c.Cookie("token")
 		comment_id, _ := c.GetQuery("commentid")
-		if err != nil {
-			panic("failed get token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		_, delete_err := likedb.DeleteCommentLike(comment_id, user_data.Uid)
 		if delete_err != nil {
-			panic(delete_err)
+			span.Finish()
+			c.AbortWithStatusJSON(500, gin.H{"reason": "error delete like"})
+			return
 		}
 		c.String(200, "deleted")
 		span.Finish()
@@ -280,18 +328,24 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		span := tracer.StartSpan("get user like")
 
-		value, err := c.Cookie("token")
-		if err != nil {
-			panic("failed get token")
+		value, cookie_err := c.Cookie("token")
+		if cookie_err != nil {
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 		user_data, check_err := checkUser(authservice, value)
 		if check_err != nil {
-			panic("error check user")
+			span.Finish()
+			c.AbortWithStatusJSON(401, gin.H{"reason": "unauthorized"})
+			return
 		}
 
 		user_like, find_err := likedb.FindUserLike(user_data.Uid)
 		if find_err != nil {
-			panic(find_err)
+			span.Finish()
+			c.AbortWithStatusJSON(404, gin.H{"reason": "not found"})
+			return
 		}
 		result, marshal_err := json.Marshal(user_like)
 		if marshal_err != nil {
@@ -319,7 +373,9 @@ func setupRouter(likedb models.LikeDatabase, authservice services.AuthService) *
 
 		_, create_err := likedb.CreatePostLike(new_post_like)
 		if create_err != nil {
-			panic(create_err)
+			span.Finish()
+			c.AbortWithStatusJSON(500, gin.H{"reason": "error create post like"})
+			return
 		}
 		c.String(200, "Liked")
 		span.Finish()
